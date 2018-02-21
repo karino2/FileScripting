@@ -6,6 +6,8 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.TextView
+import bsh.EvalError
+import bsh.ParseException
 
 class MainActivity : AppCompatActivity() {
 
@@ -14,8 +16,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
     }
 
+
+    val initScript = """
+        print(String msg) {
+            ctx.consoleWriteN(msg);
+        }
+        """
+
     val interpreter by lazy {
-        bsh.Interpreter()
+        val int = bsh.Interpreter()
+        int.set("ctx", this)
+        int.eval(initScript)
+        int
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -35,11 +47,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun runScript() {
         val script = (findViewById(R.id.editTextScript) as EditText).text.toString()
-        val result = interpreter.eval(script)
-        consoleWriteN(result.toString())
+        try {
+            val result = interpreter.eval(script)
+            val resStr = result?.toString() ?: ""
+            consoleWriteN(resStr)
+
+        }catch(e: ParseException) {
+            consoleWriteN(e.message!!)
+        }catch(e : EvalError) {
+            consoleWriteN("Error: ${e.errorLineNumber}: ${e.errorText}")
+        }
     }
 
-    private fun consoleWriteN(msg: String) {
+    fun consoleWriteN(msg: String) {
         val cns = (findViewById(R.id.textViewOutput) as TextView)
         val whole = msg + "\n" + cns.text.toString()
         cns.text = whole
