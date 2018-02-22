@@ -17,11 +17,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    val initScript = """
-        print(String msg) {
-            ctx.consoleWriteN(msg);
-        }
-        """
 
     val interpreter by lazy {
         val int = bsh.Interpreter()
@@ -50,20 +45,131 @@ class MainActivity : AppCompatActivity() {
         try {
             val result = interpreter.eval(script)
             val resStr = result?.toString() ?: ""
-            consoleWriteN(resStr)
+            println(resStr)
 
         }catch(e: ParseException) {
-            consoleWriteN(e.message!!)
+            println(e.message!!)
         }catch(e : EvalError) {
-            consoleWriteN("Error: ${e.errorLineNumber}: ${e.errorText}")
+            println("Error: ${e.errorLineNumber}: ${e.errorText}")
         }
     }
 
-    fun consoleWriteN(msg: String) {
+    fun println(msg: String) {
         val cns = (findViewById(R.id.textViewOutput) as TextView)
         val whole = msg + "\n" + cns.text.toString()
         cns.text = whole
     }
 
+    val initScript = """
+bsh.help.print = "usage: print( value )";
+import bsh.CollectionManager;
+import bsh.StringUtil;
+import bsh.Primitive;
+
+void print( arg )
+{
+	if ( arg == null )
+		arg = "null";
+
+	if ( !(arg instanceof Primitive)
+		&& !(arg instanceof bsh.ClassIdentifier )
+		&& arg.getClass().isArray() )
+	{
+        print( StringUtil.normalizeClassName(arg.getClass()) + ": {");
+		for(int i=0; i<arg.length; i++)
+			print( arg[i] + (i<arg.length?",":"") );
+		print("}");
+	}
+	else
+		ctx.println(String.valueOf(arg));
+}
+
+bsh.help.javap= "usage: javap( value )";
+
+import bsh.ClassIdentifier;
+import java.lang.reflect.Modifier;
+
+javap( Object o )
+{
+	Class clas;
+	if ( o instanceof ClassIdentifier )
+		clas = this.caller.namespace.identifierToClass(o);
+	else if ( o instanceof String )
+	{
+		if ( o.length() < 1 ) {
+			error("javap: Empty class name.");
+			return;
+		}
+		clas = this.caller.namespace.getClass((String)o);
+	} else if ( o instanceof Class )
+		clas = o;
+	else
+		clas = o.getClass();
+
+	print( "Class "+clas+" extends " +clas.getSuperclass() );
+
+	this.dmethods=clas.getDeclaredMethods();
+	//print("------------- Methods ----------------");
+	for(int i=0; i<dmethods.length; i++) {
+		this.m = dmethods[i];
+		if ( Modifier.isPublic( m.getModifiers() ) )
+			print( m );
+	}
+
+	//print("------------- Fields ----------------");
+	this.fields=clas.getDeclaredFields();
+	for(int i=0; i<fields.length; i++) {
+		this.f = fields[i];
+		if ( Modifier.isPublic( f.getModifiers() ) )
+			print( f );
+	}
+}
+
+bsh.help.pathToFile = "usage: File pathToFile( String )";
+
+File pathToFile( String filename ) {
+	return this.interpreter.pathToFile( filename );
+}
+
+
+bsh.help.cd = "usage: cd( path )";
+
+void cd( String pathname )
+{
+    this.file = pathToFile( pathname );
+
+	if ( file.exists() && file.isDirectory() )
+		bsh.cwd = file.getCanonicalPath();
+	else
+        print( "No such directory: "+pathname);
+}
+
+bsh.help.cp = "usage: cp( fromFile, toFile )";
+
+cp( String fromFile, String toFile )
+{
+    this.from = pathToFile( fromFile );
+    this.to = pathToFile( toFile );
+
+	this.in = new BufferedInputStream( new FileInputStream( from ) );
+	this.out = new BufferedOutputStream( new FileOutputStream( to ) );
+	byte [] buff = new byte [ 32*1024 ];
+	while ( (len = in.read( buff )) > 0 )
+			out.write( buff, 0, len );
+	in.close();
+	out.close();
+}
+
+bsh.help.mv = "usage: mv( fromFile, toFile )";
+
+mv( String fromFile, String toFile )
+{
+    this.from = pathToFile( fromFile );
+    this.to = pathToFile( toFile );
+	from.renameTo( to );
+}
+
+
+        """
 
 }
