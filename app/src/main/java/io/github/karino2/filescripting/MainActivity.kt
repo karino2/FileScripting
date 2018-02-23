@@ -20,11 +20,14 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
     }
 
+    fun perrorln(msg: String) { println(msg) }
 
 
     val interpreter by lazy {
         val int = bsh.Interpreter()
+        val builtin = Builtins(int, this)
         int.set("ctx", this)
+        int.set("builtins", builtin)
         int.eval(initScript)
         int
     }
@@ -102,6 +105,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     val initScript = """
+bsh.help.ls = "usage: ls(dir)";
+ls(dir) {
+    return builtins.ls(dir);
+}
+
+
 bsh.help.print = "usage: print( value )";
 
 void print( arg )
