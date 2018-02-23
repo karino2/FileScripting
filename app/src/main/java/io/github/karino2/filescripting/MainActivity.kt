@@ -5,9 +5,13 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
+import android.widget.ScrollView
 import android.widget.TextView
 import bsh.EvalError
 import bsh.ParseException
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -44,9 +48,10 @@ class MainActivity : AppCompatActivity() {
         val script = (findViewById(R.id.editTextScript) as EditText).text.toString()
         try {
             val result = interpreter.eval(script)
-            val resStr = result?.toString() ?: ""
-            println(resStr)
-
+            result?.let {
+                printObject(result)
+                println("")
+            }
         }catch(e: ParseException) {
             println(e.message!!)
         }catch(e : EvalError) {
@@ -54,34 +59,55 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // do not print tail \n
+    fun printObject(obj: Any?) {
+        when(obj) {
+            null ->{
+                print("null")
+            }
+            is Iterable<*> -> {
+                println(bsh.StringUtil.normalizeClassName(obj.javaClass) + ":")
+                for(one in obj) {
+                    printObject(one)
+                    println("")
+                }
+            }
+            is File -> {
+                val dt = Date(obj.lastModified())
+                //  2015/12/20     12:52
+                val fmt = SimpleDateFormat("yyyy/MM/dd HH:mm")
+                val dateStr =fmt.format(dt)
+
+                val sizeStr = if(obj.isDirectory) { "          " } else { "%10d".format(obj.length()) }
+                print("$dateStr  $sizeStr ${obj.name}")
+            }
+            else -> {
+                print(obj.toString())
+            }
+        }
+    }
+
+
     fun println(msg: String) {
+        print(msg + "\n")
+    }
+
+    private fun print(msg: String) {
         val cns = (findViewById(R.id.textViewOutput) as TextView)
-        val whole = msg + "\n" + cns.text.toString()
+        val whole = cns.text.toString() + msg
         cns.text = whole
+
+        val sv = findViewById(R.id.scrollView) as ScrollView
+        sv.post { sv.fullScroll(ScrollView.FOCUS_DOWN); }
     }
 
     val initScript = """
 bsh.help.print = "usage: print( value )";
-import bsh.CollectionManager;
-import bsh.StringUtil;
-import bsh.Primitive;
 
 void print( arg )
 {
-	if ( arg == null )
-		arg = "null";
-
-	if ( !(arg instanceof Primitive)
-		&& !(arg instanceof bsh.ClassIdentifier )
-		&& arg.getClass().isArray() )
-	{
-        print( StringUtil.normalizeClassName(arg.getClass()) + ": {");
-		for(int i=0; i<arg.length; i++)
-			print( arg[i] + (i<arg.length?",":"") );
-		print("}");
-	}
-	else
-		ctx.println(String.valueOf(arg));
+    ctx.printObject(arg);
+    ctx.println("");
 }
 
 bsh.help.javap= "usage: javap( value )";
