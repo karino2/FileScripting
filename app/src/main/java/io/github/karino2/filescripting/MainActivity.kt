@@ -27,8 +27,10 @@ class MainActivity : AppCompatActivity() {
         etCmdLine.setText("")
         try {
             val res = olsInterpreter.parseToEnd(script)
-            printObject(res)
-            println("")
+            res?.let {
+                printObject(res)
+                println("")
+            }
         }catch(e : Exception) {
             println("Exception: ${e.message}")
         }
