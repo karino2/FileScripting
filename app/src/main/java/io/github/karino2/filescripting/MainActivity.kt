@@ -168,6 +168,9 @@ bsh.help.ls = "usage: ls(dir)";
 ls(dir) {
     return builtins.ls(dir);
 }
+ls() {
+    return builtins.ls(".");
+}
 
 
 bsh.help.print = "usage: print( value )";
