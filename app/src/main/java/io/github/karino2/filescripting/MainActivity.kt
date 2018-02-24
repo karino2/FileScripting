@@ -1,29 +1,88 @@
 package io.github.karino2.filescripting
 
+import android.content.Context
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
 import bsh.EvalError
 import bsh.ParseException
+import com.github.h0tk3y.betterParse.grammar.parseToEnd
+import io.github.karino2.filescripting.ols.Interpreter
+import io.reactivex.subjects.PublishSubject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
+
+    fun runCommand() {
+        val script = etCmdLine.text.toString()
+        etCmdLine.setText("")
+        try {
+            val res = olsInterpreter.parseToEnd(script)
+            printObject(res)
+            println("")
+        }catch(e : Exception) {
+            println("Exception: ${e.message}")
+        }
+
+    }
+
+    val olsInterpreter by lazy {
+        val intp = Interpreter(bshInterpreter, this)
+        intp
+    }
+
+
+    val etCmdLine by lazy {
+        findViewById(R.id.editTextCmdLine) as EditText
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // instantiation first for easier development
+        val bintp = bshInterpreter
+
+        val commandPublisher = PublishSubject.create<Int>()
+
+        commandPublisher.throttleFirst(500L, TimeUnit.MILLISECONDS)
+                .subscribe() {
+                    when(it) {
+                        EditorInfo.IME_ACTION_GO-> {
+                            runCommand()
+                        }
+                        EditorInfo.IME_ACTION_UNSPECIFIED -> {
+                            runCommand();
+                        }
+                    }
+                }
+
+
+        etCmdLine.setOnEditorActionListener(fun(view, actionId, keyEvent)  : Boolean {
+            when(actionId) {
+                EditorInfo.IME_ACTION_GO, EditorInfo.IME_ACTION_UNSPECIFIED /* for hardware keyboard. */ -> {
+                    commandPublisher.onNext(actionId)
+                    return true
+                }
+
+            }
+            return false;
+        })
     }
 
     fun perrorln(msg: String) { println(msg) }
 
 
-    val interpreter by lazy {
+    val bshInterpreter by lazy {
         val int = bsh.Interpreter()
         val builtin = Builtins(int, this)
         int.set("ctx", this)
@@ -50,7 +109,7 @@ class MainActivity : AppCompatActivity() {
     private fun runScript() {
         val script = (findViewById(R.id.editTextScript) as EditText).text.toString()
         try {
-            val result = interpreter.eval(script)
+            val result = bshInterpreter.eval(script)
             result?.let {
                 printObject(result)
                 println("")
