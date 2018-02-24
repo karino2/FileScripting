@@ -27,6 +27,8 @@ class MainActivity : AppCompatActivity() {
         etCmdLine.setText("")
         try {
             val res = olsInterpreter.parseToEnd(script)
+            if(res == bsh.Primitive.VOID)
+                return
             res?.let {
                 printObject(res)
                 println("")
@@ -235,7 +237,15 @@ bsh.help.cd = "usage: cd( path )";
 
 void cd( String pathname )
 {
-    this.file = pathToFile( pathname );
+    if("..".equals(pathname)) {
+      this.cur = new File(bsh.cwd);
+      this.file = this.cur.getParentFile();
+      if(this.file == null) {
+        return;
+      }
+    } else {
+        this.file = pathToFile( pathname );
+    }
 
 	if ( file.exists() && file.isDirectory() )
 		bsh.cwd = file.getCanonicalPath();

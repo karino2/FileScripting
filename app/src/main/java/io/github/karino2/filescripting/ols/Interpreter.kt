@@ -13,18 +13,36 @@ import io.github.karino2.filescripting.MainActivity
 class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<Any?>() {
     val id by token("\\w+")
     val dot by token ("\\.")
-    val dotdot by token ("\\.\\.")
+    val dol by token ("\\$")
+    val equal by token("=")
+    val dotdot = dot*dot use { ".." }
 
-    val argExp = id or dot or dotdot use { text }
+    val lVar = dol * id map { (_, nametk) -> nametk.text }
+
+
+    val argVar = dol * id map { (_, nametk) -> bintp.get(nametk.text) }
+
+    val argLiteralExp = dotdot or ((id or dot) use { text })
+    val argExp = argLiteralExp or argVar
     val ws by token("\\s+", ignore = true)
-    val command by (id * separatedTerms(argExp, ws, acceptZero = true))
+    val command = (id * separatedTerms(argExp, ws, acceptZero = true))
             .map { (name, args) -> funCall(name.text, args) }
 
-    override val rootParser: Parser<Any?> by command
 
+    val assign = (lVar * equal * command).map {(lname, _, rval) ->   bintp.set(lname,  rval) }
+    val statements = command or assign or argVar
 
-    fun funCall(name: String, args: List<String>) : Any? {
-        val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaClass  } .toTypedArray(), false)
+    override val rootParser: Parser<Any?> = statements
+
+    inline val Any?.javaOrDefClass : java.lang.Class<out Any?>
+    get() {
+        return this?.javaClass ?: Class.forName("java.lang.Object")
+    }
+
+    fun funCall(name: String, args: List<Any?>) : Any? {
+        // it?.javaClass ?: Class.forName("java.lang.Object")
+
+        val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaOrDefClass } .toTypedArray(), false)
         // val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaClass as java.lang.Class<out Any?> } .toTypedArray(), false)
         // val bshMethod = bshMethodOrg ?: bintp.nameSpace.getMethod(name, args.map { Class.forName("java.lang.Object") as java.lang.Class<out Any?> } .toTypedArray(), false)
         if(bshMethod == null) {
@@ -33,14 +51,12 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
 
             val objarrClass = Class.forName("[Ljava.lang.Object;")
             val argTypes = arrayOf(objarrClass)
-            val bshArrArgMethod = bintp.nameSpace.getMethod(name, args.map { it.javaClass } .toTypedArray(), false)
+            val bshArrArgMethod = bintp.nameSpace.getMethod(name, args.map { it.javaOrDefClass } .toTypedArray(), false)
             if(bshArrArgMethod == null)
                 throw Exception("Undefined function: ${name}")
             return bshArrArgMethod.invoke(arrayOf<java.lang.Object>(args as java.lang.Object), bintp)
         }
 
-        val pt = bshMethod.parameterTypes
-        Log.d("SF", "size = ${pt.size}")
         if(bshMethod.parameterTypes.size != args.size) {
             throw Exception("Unmatched argnum of function: ${name}. defined ${bshMethod.parameterTypes.size}, supplied ${args.size}")
         }
