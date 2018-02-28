@@ -3,6 +3,7 @@ package io.github.karino2.filescripting
 import android.content.Context
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.design.widget.TabLayout
 import android.view.Menu
 import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
@@ -49,9 +50,38 @@ class MainActivity : AppCompatActivity() {
         findViewById(R.id.editTextCmdLine) as EditText
     }
 
+    val tabLayout by lazy {
+        findViewById(R.id.tabLayout) as TabLayout
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+
+        val script = ScriptModel()
+
+        tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener{
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                val (old, cur) = (tab!!.tag as Pair<ScriptModel, ScriptModel>)
+                cur.script = etScript.text.toString()
+                if(old != cur) {
+                    // save here
+                }
+            }
+
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                val (_, cur) = (tab!!.tag as Pair<ScriptModel, ScriptModel>)
+                etScript.setText(cur.script)
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+            }
+
+        })
+
 
         // instantiation first for easier development
         val bintp = bshInterpreter
@@ -106,12 +136,26 @@ class MainActivity : AppCompatActivity() {
                 runScript()
                 return true
             }
+            R.id.action_new -> {
+                //         tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
+                val tab = tabLayout.newTab()
+                tab.text  = "*New*"
+                val script = ScriptModel()
+                tab.tag = Pair(script, script.copy())
+                tabLayout.addTab(tab)
+                tab.select()
+                return true
+            }
         }
         return super.onOptionsItemSelected(item)
     }
 
+    val etScript by lazy {
+        findViewById(R.id.editTextScript) as EditText
+    }
+
     private fun runScript() {
-        val script = (findViewById(R.id.editTextScript) as EditText).text.toString()
+        val script = etScript.text.toString()
         try {
             val result = bshInterpreter.eval(script)
             result?.let {

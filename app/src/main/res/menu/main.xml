@@ -4,7 +4,12 @@
 
     <item
         android:id="@+id/action_run"
-        android:icon=" @android:drawable/ic_media_play"
+        android:icon="@android:drawable/ic_media_play"
         android:title="Run"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/action_new"
+        android:icon="@android:drawable/ic_menu_add"
+        app:showAsAction="always"
+        android:title="New" />
 </menu>
