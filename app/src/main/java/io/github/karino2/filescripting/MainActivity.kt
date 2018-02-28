@@ -1,6 +1,7 @@
 package io.github.karino2.filescripting
 
 import android.content.Context
+import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.design.widget.TabLayout
@@ -23,6 +24,8 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
+
+    val LIST_SCRIPT_REQUEST = 1
     fun runCommand() {
         val script = etCmdLine.text.toString()
         etCmdLine.setText("")
@@ -64,11 +67,14 @@ class MainActivity : AppCompatActivity() {
 
         tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener{
-            override fun onTabUnselected(tab: TabLayout.Tab?) {
-                val (old, cur) = (tab!!.tag as Pair<ScriptModel, ScriptModel>)
+            override fun onTabUnselected(tab: TabLayout.Tab) {
+                val (old, cur) = (tab.tag as Pair<ScriptModel, ScriptModel>)
                 cur.script = etScript.text.toString()
                 if(old != cur) {
-                    // save here
+                    cur.lastModified = Date().time
+
+                    database.updateScript(cur)
+                    tab.tag = Pair(cur.copy(), cur)
                 }
             }
 
@@ -138,16 +144,43 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_new -> {
                 //         tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
-                val tab = tabLayout.newTab()
-                tab.text  = "*New*"
                 val script = ScriptModel()
-                tab.tag = Pair(script, script.copy())
-                tabLayout.addTab(tab)
-                tab.select()
+                openTabWith(script)
+                return true
+            }
+            R.id.action_list -> {
+                val intent = Intent(this, ScriptsListActivity::class.java)
+                startActivityForResult(intent, LIST_SCRIPT_REQUEST)
                 return true
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun openTabWith(script: ScriptModel) {
+        val tab = tabLayout.newTab()
+        tab.text = "*New*"
+        tab.tag = Pair(script, script.copy())
+        tabLayout.addTab(tab)
+        tab.select()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        when(requestCode) {
+            LIST_SCRIPT_REQUEST -> {
+                if(resultCode == RESULT_OK) {
+                    openScript(data!!.getLongExtra("SCRIPT_ID", -1))
+                }
+                return
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    private fun openScript(scriptId: Long) {
+        val script = database.selectScript(scriptId)
+        openTabWith(script)
+
     }
 
     val etScript by lazy {
