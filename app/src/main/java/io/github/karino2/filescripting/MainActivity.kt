@@ -383,6 +383,12 @@ void mv( Object[] files )
     builtins.moveCommand(files);
 }
 
+bsh.help.rm = "usage: rm( fileArray )";
+
+void rm( Object[] files )
+{
+    builtins.rmCommand(files);
+}
 
         """
 

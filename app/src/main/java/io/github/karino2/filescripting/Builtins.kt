@@ -77,12 +77,12 @@ class Builtins(val intp : Interpreter, val ctx: MainActivity) {
         }
     }
 
-    fun splitSourceDist(files: Array<Any>) : Pair<List<File>, File> {
+    fun Iterable<Any>.flatMapFiles() : List<File> {
         val cwd = intp.CWD
-        val srces = files.slice(0 until files.size-1).flatMap {
-            when(it) {
+        return this.flatMap {
+            when (it) {
                 is String -> {
-                    if(it.isPattern) {
+                    if (it.isPattern) {
                         expands(cwd, it).asIterable()
                     } else {
                         arrayListOf(intp.pathToFile(it))
@@ -93,7 +93,12 @@ class Builtins(val intp : Interpreter, val ctx: MainActivity) {
                 }
                 else -> throw IllegalArgumentException("Unknown arg")
             }
+
         }
+    }
+
+    fun splitSourceDist(files: Array<Any>) : Pair<List<File>, File> {
+        val srces = files.slice(0 until files.size-1).flatMapFiles()
 
         val last = files.last()
         val dest = when(last) {
@@ -104,6 +109,20 @@ class Builtins(val intp : Interpreter, val ctx: MainActivity) {
         return Pair(srces, dest)
 
     }
+
+    fun rmCommand(filesArg: Array<Any>) : Boolean {
+        try {
+            val files = filesArg.asIterable().flatMapFiles()
+            return files.all {
+                it.delete()
+            }
+        }catch(e: IllegalArgumentException) {
+            return false;
+        }
+
+
+    }
+
 
 
     fun copyCommand(files: Array<Any>) : Boolean {
