@@ -3,6 +3,9 @@ package io.github.karino2.filescripting
 import bsh.Interpreter
 import java.io.File
 import bsh.StringUtil
+import java.io.BufferedInputStream
+import java.io.FileInputStream
+import java.io.IOException
 import kotlin.coroutines.experimental.buildSequence
 
 
@@ -50,6 +53,63 @@ class Builtins(val intp : Interpreter, val ctx: MainActivity) {
         return dir.listFiles{ d, name ->
             pat.matches(name)
         }
+    }
+
+    fun copyOne(src: File, dest: File) : Boolean {
+        return try {
+            src.copyTo(dest)
+            true
+        }catch(e: IOException) {
+            false
+        }
+    }
+
+    fun copyMany(srcs: Iterable<File>, destDir:File) : Boolean {
+        if(!destDir.isDirectory)
+            return false
+        return srcs.all {
+            val dest = File(destDir, it.name)
+            copyOne(it, dest)
+        }
+    }
+
+    fun copyCommand(files: Array<Any>) : Boolean {
+        assert(files.size >= 2)
+
+        try {
+            val cwd = intp.CWD
+            val srces = files.slice(0 until files.size-1).flatMap {
+                when(it) {
+                    is String -> {
+                        if(it.isPattern) {
+                            expands(cwd, it).asIterable()
+                        } else {
+                            arrayListOf(intp.pathToFile(it))
+                        }
+                    }
+                    is File -> {
+                        arrayListOf(it)
+                    }
+                    else -> throw IllegalArgumentException("Unknown arg")
+                }
+            }
+
+            val last = files.last()
+            val dest = when(last) {
+                is String -> intp.pathToFile(last)
+                is File -> last
+                else -> throw IllegalArgumentException("unknown dest")
+            }
+
+            copyMany(srces, dest)
+
+            return true
+
+        }catch(e: IllegalArgumentException) {
+            return false;
+        }
+
+
     }
 
     fun lsFile(target: File) : Iterable<File> {

@@ -361,20 +361,15 @@ void cd( String pathname )
         print( "No such directory: "+pathname);
 }
 
-bsh.help.cp = "usage: cp( fromFile, toFile )";
+bsh.help.cp = "usage: cp( fileArray )\nlast element is destination.";
 
-cp( String fromFile, String toFile )
+void cp( Object[] files )
 {
-    this.from = pathToFile( fromFile );
-    this.to = pathToFile( toFile );
-
-	this.in = new BufferedInputStream( new FileInputStream( from ) );
-	this.out = new BufferedOutputStream( new FileOutputStream( to ) );
-	byte [] buff = new byte [ 32*1024 ];
-	while ( (len = in.read( buff )) > 0 )
-			out.write( buff, 0, len );
-	in.close();
-	out.close();
+    if(files.length < 2) {
+        print("cp src [src2, src3, ...] dest");
+        return;
+    }
+    builtins.copyCommand(files);
 }
 
 bsh.help.mv = "usage: mv( fromFile, toFile )";

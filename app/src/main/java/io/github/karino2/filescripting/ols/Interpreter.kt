@@ -16,6 +16,7 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
     val dol by token ("\\$")
     val equal by token("=")
     val aster by token("\\*")
+    val ws by token("\\s+")
 
     val lVar = dol * id map { (_, nametk) -> nametk.text }
 
@@ -24,12 +25,13 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
 
     val argLiteralExp  = oneOrMore((id or aster or dot) use {text}) use { joinToString("") }
     val argExp = argLiteralExp or argVar
-    val ws by token("\\s+", ignore = true)
-    val command = (id * separatedTerms(argExp, ws, acceptZero = true))
+    val commandWithArg = (id * -ws * separatedTerms(argExp, ws, acceptZero = true))
             .map { (name, args) -> funCall(name.text, args) }
+    val singularCommand = id .map { funCall(it.text, emptyList<Any>())}
 
+    val command = commandWithArg or singularCommand
 
-    val assign = (lVar * equal * command).map {(lname, _, rval) ->   bintp.set(lname,  rval) }
+    val assign = (lVar *  -zeroOrMore(ws)*equal* -zeroOrMore(ws) * command).map {(lname, _, rval) ->   bintp.set(lname,  rval) }
     val statements = command or assign or argVar
 
     override val rootParser: Parser<Any?> = statements
@@ -51,10 +53,10 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
 
             val objarrClass = Class.forName("[Ljava.lang.Object;")
             val argTypes = arrayOf(objarrClass)
-            val bshArrArgMethod = bintp.nameSpace.getMethod(name, args.map { it.javaOrDefClass } .toTypedArray(), false)
+            val bshArrArgMethod = bintp.nameSpace.getMethod(name, argTypes, false)
             if(bshArrArgMethod == null)
                 throw Exception("Undefined function: ${name}")
-            return bshArrArgMethod.invoke(arrayOf<java.lang.Object>(args as java.lang.Object), bintp)
+            return bshArrArgMethod.invoke(arrayOf<Any>(args.toTypedArray()), bintp)
         }
 
         if(bshMethod.parameterTypes.size != args.size) {
