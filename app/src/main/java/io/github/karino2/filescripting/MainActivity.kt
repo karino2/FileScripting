@@ -309,6 +309,31 @@ File pathToFile( String filename ) {
 	return this.interpreter.pathToFile( filename );
 }
 
+bsh.help.mkdir = "usage: mkdir(path)";
+
+mkdir(pathname)
+{
+    this.file = pathToFile( pathname );
+
+	if ( this.file.exists() ) {
+        print( "Already exist: "+pathname);
+        return this.file;
+    }
+    if(!this.file.mkdir()) {
+        print("Fail to create: " + pathname);
+        return this.file;
+    }
+    return this.file;
+
+}
+
+
+bsh.help.pwd = "usage: pwd()";
+
+pwd()
+{
+    return bsh.cwd;
+}
 
 bsh.help.cd = "usage: cd( path )";
 
@@ -320,6 +345,12 @@ void cd( String pathname )
       if(this.file == null) {
         return;
       }
+    } else if(builtins.isWildcard(pathname)) {
+        this.files = builtins.expands(new File(bsh.cwd), pathname);
+        if(this.files.length == 0) {
+            print( "No such directory: "+pathname);
+        }
+        this.file = this.files[0];
     } else {
         this.file = pathToFile( pathname );
     }

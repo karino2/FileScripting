@@ -11,15 +11,19 @@ import kotlin.coroutines.experimental.buildSequence
  * Facade for script command
  */
 class Builtins(val intp : Interpreter, val ctx: MainActivity) {
-    fun String.isPattern() :Boolean { return this.contains("*") }
+    val String.isPattern
+    get()= this.contains("*")
 
     val Interpreter.CWD : File
     get() = File(this.get("bsh.cwd") as String)
 
+
+    fun isWildcard(cand: String) = cand.isPattern
+
     fun ls(dir: Any?): Iterable<File> {
         when(dir) {
             is String -> {
-                if(dir.isPattern()) {
+                if(dir.isPattern) {
                     return expands(intp.CWD, dir).asIterable()
                 } else {
                     return lsFile(intp.pathToFile(dir))
