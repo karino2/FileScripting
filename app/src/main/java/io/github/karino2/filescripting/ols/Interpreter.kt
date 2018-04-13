@@ -15,14 +15,14 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
     val dot by token ("\\.")
     val dol by token ("\\$")
     val equal by token("=")
-    val dotdot = dot*dot use { ".." }
+    val aster by token("\\*")
 
     val lVar = dol * id map { (_, nametk) -> nametk.text }
 
 
     val argVar = dol * id map { (_, nametk) -> bintp.get(nametk.text) }
 
-    val argLiteralExp = dotdot or ((id or dot) use { text })
+    val argLiteralExp  = oneOrMore((id or aster or dot) use {text}) use { joinToString("") }
     val argExp = argLiteralExp or argVar
     val ws by token("\\s+", ignore = true)
     val command = (id * separatedTerms(argExp, ws, acceptZero = true))
