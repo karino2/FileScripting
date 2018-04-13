@@ -372,13 +372,15 @@ void cp( Object[] files )
     builtins.copyCommand(files);
 }
 
-bsh.help.mv = "usage: mv( fromFile, toFile )";
+bsh.help.mv = "usage: mv( fileArray )\nlast element is destination.";
 
-mv( String fromFile, String toFile )
+void mv( Object[] files )
 {
-    this.from = pathToFile( fromFile );
-    this.to = pathToFile( toFile );
-	from.renameTo( to );
+    if(files.length < 2) {
+        print("mv src [src2, src3, ...] dest");
+        return;
+    }
+    builtins.moveCommand(files);
 }
 
 

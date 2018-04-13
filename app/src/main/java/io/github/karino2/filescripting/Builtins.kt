@@ -64,46 +64,55 @@ class Builtins(val intp : Interpreter, val ctx: MainActivity) {
         }
     }
 
-    fun copyMany(srcs: Iterable<File>, destDir:File) : Boolean {
-        if(!destDir.isDirectory)
-            return false
+    fun copyMany(srcs: List<File>, destDir:File) : Boolean {
+        if(!destDir.isDirectory) {
+            if(srcs.size != 1)
+                return false;
+            // destDir is not dir, bad name.
+            copyOne(srcs[0], destDir)
+        }
         return srcs.all {
             val dest = File(destDir, it.name)
             copyOne(it, dest)
         }
     }
 
+    fun splitSourceDist(files: Array<Any>) : Pair<List<File>, File> {
+        val cwd = intp.CWD
+        val srces = files.slice(0 until files.size-1).flatMap {
+            when(it) {
+                is String -> {
+                    if(it.isPattern) {
+                        expands(cwd, it).asIterable()
+                    } else {
+                        arrayListOf(intp.pathToFile(it))
+                    }
+                }
+                is File -> {
+                    arrayListOf(it)
+                }
+                else -> throw IllegalArgumentException("Unknown arg")
+            }
+        }
+
+        val last = files.last()
+        val dest = when(last) {
+            is String -> intp.pathToFile(last)
+            is File -> last
+            else -> throw IllegalArgumentException("unknown dest")
+        }
+        return Pair(srces, dest)
+
+    }
+
+
     fun copyCommand(files: Array<Any>) : Boolean {
         assert(files.size >= 2)
 
         try {
-            val cwd = intp.CWD
-            val srces = files.slice(0 until files.size-1).flatMap {
-                when(it) {
-                    is String -> {
-                        if(it.isPattern) {
-                            expands(cwd, it).asIterable()
-                        } else {
-                            arrayListOf(intp.pathToFile(it))
-                        }
-                    }
-                    is File -> {
-                        arrayListOf(it)
-                    }
-                    else -> throw IllegalArgumentException("Unknown arg")
-                }
-            }
+            val (sources, dest) = splitSourceDist(files)
 
-            val last = files.last()
-            val dest = when(last) {
-                is String -> intp.pathToFile(last)
-                is File -> last
-                else -> throw IllegalArgumentException("unknown dest")
-            }
-
-            copyMany(srces, dest)
-
-            return true
+            return copyMany(sources, dest)
 
         }catch(e: IllegalArgumentException) {
             return false;
@@ -111,6 +120,28 @@ class Builtins(val intp : Interpreter, val ctx: MainActivity) {
 
 
     }
+
+    fun moveCommand(files: Array<Any>) : Boolean {
+        assert(files.size >= 2)
+
+        try {
+            val (sources, dest) = splitSourceDist(files)
+            if(!dest.isDirectory) {
+                if(sources.size != 1)
+                    return false
+                return sources[0].renameTo(dest)
+            }
+            return sources.all {
+                val destFile = File(dest, it.name)
+                it.renameTo(destFile)
+            }
+        }catch(e: IllegalArgumentException) {
+            return false;
+        }
+
+
+    }
+
 
     fun lsFile(target: File) : Iterable<File> {
         if(!target.exists() || !target.canRead()) {
