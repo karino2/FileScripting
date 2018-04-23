@@ -10,9 +10,14 @@
     <item
         android:id="@+id/action_new"
         android:icon="@android:drawable/ic_menu_add"
-        app:showAsAction="always"
+        app:showAsAction="ifRoom"
         android:title="New" />
     <item
         android:id="@+id/action_list"
+        android:icon="@android:drawable/ic_menu_agenda"
         android:title="List" />
+    <item
+        android:id="@+id/action_close"
+        android:icon="@android:drawable/ic_menu_close_clear_cancel"
+        android:title="Close" />
 </menu>

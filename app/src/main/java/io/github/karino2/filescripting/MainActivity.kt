@@ -169,6 +169,15 @@ class MainActivity : AppCompatActivity() {
                 startActivityForResult(intent, LIST_SCRIPT_REQUEST)
                 return true
             }
+            R.id.action_close -> {
+                tabLayout.currentTab?.let {
+                    saveIfNecessary(it)
+                    if(tabLayout.tabCount >= 2) {
+                        it.tag = null;
+                        tabLayout.removeTab(it)
+                    }
+                }
+            }
         }
         return super.onOptionsItemSelected(item)
     }
