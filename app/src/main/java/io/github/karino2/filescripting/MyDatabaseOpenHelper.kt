@@ -56,6 +56,11 @@ fun SQLiteDatabase.updateScript(model : ScriptModel) {
     }
 }
 
+fun SQLiteDatabase.deleteScripts(ids : LongArray) {
+    this.delete("Scripts", "_id in ({allids})", "allids" to ids.joinToString())
+}
+
+
 fun SQLiteDatabase.selectScript(id: Long) : ScriptModel {
     return this.select("Scripts", "_id", "script", "lastModified")
             .whereArgs("_id={sid}", "sid" to id)
