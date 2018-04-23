@@ -56,6 +56,15 @@ class MainActivity : AppCompatActivity() {
     val tabLayout by lazy {
         findViewById(R.id.tabLayout) as TabLayout
     }
+    val TabLayout.currentTab
+    get() = this.getTabAt(this.selectedTabPosition)
+
+    override fun onStop() {
+        tabLayout.currentTab?.let {
+            saveIfNecessary(it)
+        }
+         super.onStop()
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,14 +77,7 @@ class MainActivity : AppCompatActivity() {
         tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener{
             override fun onTabUnselected(tab: TabLayout.Tab) {
-                val (old, cur) = (tab.tag as Pair<ScriptModel, ScriptModel>)
-                cur.script = etScript.text.toString()
-                if(old != cur) {
-                    cur.lastModified = Date().time
-
-                    database.updateScript(cur)
-                    tab.tag = Pair(cur.copy(), cur)
-                }
+                saveIfNecessary(tab)
             }
 
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -117,6 +119,20 @@ class MainActivity : AppCompatActivity() {
             }
             return false;
         })
+    }
+
+    private fun saveIfNecessary(tab: TabLayout.Tab) {
+        // when close, tab.tag is null.
+        tab.tag?.let {
+            val (old, cur) = (it as Pair<ScriptModel, ScriptModel>)
+            cur.script = etScript.text.toString()
+            if (old != cur) {
+                cur.lastModified = Date().time
+
+                database.updateScript(cur)
+                tab.tag = Pair(cur.copy(), cur)
+            }
+        }
     }
 
     fun perrorln(msg: String) { println(msg) }
