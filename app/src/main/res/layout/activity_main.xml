@@ -18,7 +18,7 @@
         <android.support.design.widget.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="New" />
+            android:text="*scratch*" />
     </android.support.design.widget.TabLayout>
 
     <EditText

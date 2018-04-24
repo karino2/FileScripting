@@ -4,7 +4,6 @@ import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.design.widget.TabLayout
-import android.support.v7.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
@@ -113,13 +112,14 @@ class MainActivity : AppCompatActivity() {
         val script = ScriptModel()
 
         tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
+
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener{
             override fun onTabUnselected(tab: TabLayout.Tab) {
                 saveIfNecessary(tab)
             }
 
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                val (_, cur) = (tab!!.tag as Pair<ScriptModel, ScriptModel>)
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                val (_, cur) = (tab.tag as Pair<ScriptModel, ScriptModel>)
                 etScript.setText(cur.script)
             }
 
@@ -159,7 +159,13 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    val TabLayout.Tab.isScratch
+    get() = this.text == "*scratch*"
+
     private fun saveIfNecessary(tab: TabLayout.Tab) {
+        if(tab.isScratch)
+            return
+
         // when close, tab.tag is null.
         tab.tag?.let {
             val (old, cur) = (it as Pair<ScriptModel, ScriptModel>)
@@ -209,12 +215,17 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_close -> {
                 tabLayout.currentTab?.let {
-                    saveIfNecessary(it)
-                    if(tabLayout.tabCount >= 2) {
-                        it.tag = null;
-                        tabLayout.removeTab(it)
+                    if(it.isScratch) {
+                        println("Can't close scratch.")
+                        return true
                     }
+
+                    saveIfNecessary(it)
+
+                    it.tag = null;
+                    tabLayout.removeTab(it)
                 }
+                return true
             }
         }
         return super.onOptionsItemSelected(item)
