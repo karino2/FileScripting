@@ -1,14 +1,13 @@
 package io.github.karino2.filescripting
 
-import android.content.Context
 import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.design.widget.TabLayout
+import android.support.v7.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
@@ -71,6 +70,45 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        etScript.customSelectionActionModeCallback =
+                object : android.view.ActionMode.Callback {
+                    override fun onActionItemClicked(actionMode: android.view.ActionMode, menuItem: MenuItem): Boolean {
+                        when(menuItem.itemId){
+                            R.id.action_run_selected -> {
+
+                                val start = etScript.selectionStart
+                                val end = etScript.selectionEnd
+
+                                // I think never happen. But for sure.
+                                if(start == -1 || end== -1)
+                                    return false
+
+                                val script = etScript.text.substring(
+                                        Math.min(start, end),
+                                        Math.max(start, end)
+                                )
+
+
+                                runScript(script)
+                                actionMode.finish()
+                                return true
+                            }
+
+                        }
+                        return false
+                    }
+
+                    override fun onCreateActionMode(actionMode: android.view.ActionMode, menu: Menu): Boolean {
+                        menu.add(Menu.NONE, R.id.action_run_selected, Menu.CATEGORY_SYSTEM, "Run").setIcon(android.R.drawable.ic_media_play)
+                                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+                        return true
+                    }
+
+                    override fun onPrepareActionMode(p0: android.view.ActionMode?, p1: Menu?) = true
+
+                    override fun onDestroyActionMode(p0: android.view.ActionMode?) {
+                    }
+                }
 
         val script = ScriptModel()
 
@@ -155,7 +193,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId) {
             R.id.action_run -> {
-                runScript()
+                runEditTextScript()
                 return true
             }
             R.id.action_new -> {
@@ -209,20 +247,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     val etScript by lazy {
-        findViewById(R.id.editTextScript) as EditText
+        findViewById<EditText>(R.id.editTextScript)
     }
 
-    private fun runScript() {
+    private fun runEditTextScript() {
         val script = etScript.text.toString()
+        runScript(script)
+    }
+
+    private fun runScript(script: String) {
         try {
             val result = bshInterpreter.eval(script)
             result?.let {
                 printObject(result)
                 println("")
             }
-        }catch(e: ParseException) {
+        } catch (e: ParseException) {
             println(e.message!!)
-        }catch(e : EvalError) {
+        } catch (e: EvalError) {
             println("Error: ${e.errorLineNumber}: ${e.errorText}")
         }
     }
