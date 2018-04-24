@@ -2,6 +2,7 @@ package io.github.karino2.filescripting
 
 import android.content.Context
 import android.content.Intent
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -14,6 +15,8 @@ import android.widget.ListView
 import android.widget.SimpleCursorAdapter
 import android.widget.TextView
 import io.reactivex.Completable
+import io.reactivex.Flowable
+import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import org.jetbrains.anko.db.SqlOrderDirection
 import org.jetbrains.anko.db.select
@@ -39,10 +42,7 @@ class ScriptsListActivity : AppCompatActivity() {
         val lv = listView
 
         handler.post {
-                val cursor = database.query("Scripts", arrayOf("_id", "script", "lastModified"),
-                        null, null, null, null, "lastModified DESC, _id DESC")
-                adapter.swapCursor(cursor)
-                startManagingCursor(cursor)
+            reloadCursor()
         }
 
         adapter.setViewBinder { view, cursor, columnIndex ->
@@ -74,6 +74,12 @@ class ScriptsListActivity : AppCompatActivity() {
         }
 
         lv.setMultiChoiceModeListener(createMultiChoiceModeListener());
+    }
+
+    private fun queryCursor(): Cursor {
+        val cursor = database.query("Scripts", arrayOf("_id", "script", "lastModified"),
+                null, null, null, null, "lastModified DESC, _id DESC")
+        return cursor
     }
 
     fun createMultiChoiceModeListener() : AbsListView.MultiChoiceModeListener {
@@ -114,12 +120,26 @@ class ScriptsListActivity : AppCompatActivity() {
         get() = MyDatabaseOpenHelper.getInstance(getApplicationContext()).writableDatabase
 
     private fun deleteScripts(scriptIds: LongArray) {
-        Completable.fromAction {
+         Flowable.fromCallable {
             database.deleteScripts(scriptIds)
+
+            queryCursor()
         }.subscribeOn(Schedulers.io())
-        .subscribe {
+         .observeOn(AndroidSchedulers.mainThread())
+        .subscribe {cursor->
+            swapCursor(cursor)
             supportInvalidateOptionsMenu()
         }
+    }
+
+    private fun ScriptsListActivity.reloadCursor() {
+        val cursor = queryCursor()
+        swapCursor(cursor)
+    }
+
+    private fun ScriptsListActivity.swapCursor(cursor: Cursor) {
+        adapter.swapCursor(cursor)
+        startManagingCursor(cursor)
     }
 
     val TOOLONG_LINE_NUM = 12
