@@ -4,6 +4,7 @@ import android.content.Intent
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.design.widget.TabLayout
+import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.inputmethod.EditorInfo
@@ -76,20 +77,7 @@ class MainActivity : AppCompatActivity() {
                         when(menuItem.itemId){
                             R.id.action_run_selected -> {
 
-                                val start = etScript.selectionStart
-                                val end = etScript.selectionEnd
-
-                                // I think never happen. But for sure.
-                                if(start == -1 || end== -1)
-                                    return false
-
-                                val script = etScript.text.substring(
-                                        Math.min(start, end),
-                                        Math.max(start, end)
-                                )
-
-
-                                runScript(script)
+                                evalSelected()
                                 actionMode.finish()
                                 return true
                             }
@@ -109,6 +97,16 @@ class MainActivity : AppCompatActivity() {
                     override fun onDestroyActionMode(p0: android.view.ActionMode?) {
                     }
                 }
+
+        etScript.setOnKeyListener { view, keyCode, keyEvent ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER && keyEvent.action == KeyEvent.ACTION_DOWN &&
+                    keyEvent.isShiftPressed) {
+                evalSelected()
+                true
+            }else {
+                false
+            }
+        }
 
         val script = ScriptModel()
 
@@ -160,6 +158,22 @@ class MainActivity : AppCompatActivity() {
             }
             return false;
         })
+    }
+
+    private fun evalSelected(){
+        val start = etScript.selectionStart
+        val end = etScript.selectionEnd
+
+        if (start == -1 || end == -1)
+            return
+
+        val script = etScript.text.substring(
+                Math.min(start, end),
+                Math.max(start, end)
+        )
+
+
+        runScript(script)
     }
 
     val TabLayout.Tab.isScratch
