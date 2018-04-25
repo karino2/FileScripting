@@ -10,6 +10,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import bsh.EvalError
 import bsh.ParseException
 import com.github.h0tk3y.betterParse.grammar.parseToEnd
@@ -273,6 +274,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun runScript(script: String) {
         try {
+            showMessage("run")
             val result = bshInterpreter.eval(script)
             result?.let {
                 printObject(result)
@@ -281,9 +283,11 @@ class MainActivity : AppCompatActivity() {
         } catch (e: ParseException) {
             println(e.message!!)
         } catch (e: EvalError) {
-            println("Error: ${e.errorLineNumber}: ${e.errorText}")
+            println("Error: ${e.errorLineNumber}: ${e.errorText}, ${e.message}")
         }
     }
+
+    private fun showMessage(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
 
     // do not print tail \n
     fun printObject(obj: Any?) {
