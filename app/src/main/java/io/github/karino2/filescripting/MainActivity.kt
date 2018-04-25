@@ -111,7 +111,9 @@ class MainActivity : AppCompatActivity() {
 
         val script = ScriptModel()
 
-        tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
+        // for scratch, old and cur must is the same.
+        // tabLayout.getTabAt(0)!!.tag = Pair(script, script.copy())
+        tabLayout.getTabAt(0)!!.tag = Pair(script, script)
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener{
             override fun onTabUnselected(tab: TabLayout.Tab) {
@@ -163,13 +165,16 @@ class MainActivity : AppCompatActivity() {
     get() = this.text == "*scratch*"
 
     private fun saveIfNecessary(tab: TabLayout.Tab) {
-        if(tab.isScratch)
-            return
 
         // when close, tab.tag is null.
         tab.tag?.let {
             val (old, cur) = (it as Pair<ScriptModel, ScriptModel>)
             cur.script = etScript.text.toString()
+
+            if(tab.isScratch) {
+                return
+            }
+
             if (old != cur) {
                 cur.lastModified = Date().time
 
