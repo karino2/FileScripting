@@ -16,6 +16,11 @@ import bsh.EvalError
 import bsh.ParseException
 import com.github.h0tk3y.betterParse.grammar.parseToEnd
 import io.github.karino2.filescripting.ols.Interpreter
+import io.reactivex.Completable
+import io.reactivex.Flowable
+import io.reactivex.Scheduler
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.io.File
 import java.text.SimpleDateFormat
@@ -286,19 +291,49 @@ class MainActivity : AppCompatActivity() {
         runScript(script)
     }
 
+    var running = false;
+    var startTick = 0L
+
     private fun runScript(script: String) {
-        try {
-            showMessage("run")
-            val result = bshInterpreter.eval(script)
-            result?.let {
-                printObject(result)
-                println("")
-            }
-        } catch (e: ParseException) {
-            println(e.message!!)
-        } catch (e: EvalError) {
-            println("Error: ${e.errorLineNumber}: ${e.errorText}, ${e.message}")
+        if(running) {
+            showMessage("already running...")
+            return
         }
+
+        running = true
+        startTick = System.currentTimeMillis()
+        showMessage("run")
+        Flowable.fromCallable {
+           bshInterpreter.eval(script)
+        }.subscribeOn(Schedulers.computation())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    {
+                        if(System.currentTimeMillis() - startTick> 5000) {
+                            showMessage("eval done.")
+                        }
+
+                        running = false
+                        it?.let {
+                            printObject(it)
+                            println("")
+                        }
+                    },
+                    {
+                        running = false
+                        when(it)
+                        {
+                            is ParseException ->
+                            {
+                                println(it.message!!)
+                            }
+                            is EvalError -> {
+                                println("Error: ${it.errorLineNumber}: ${it.errorText}\n ${it.message}")
+                            }
+                        }
+
+                    }
+                )
     }
 
     private fun showMessage(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
@@ -337,12 +372,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun print(msg: String) {
-        val cns = (findViewById(R.id.textViewOutput) as TextView)
-        val whole = cns.text.toString() + msg
-        cns.text = whole
+        Completable.fromAction {
+            val cns = (findViewById(R.id.textViewOutput) as TextView)
+            val whole = cns.text.toString() + msg
+            cns.text = whole
 
-        val sv = findViewById(R.id.scrollView) as ScrollView
-        sv.post { sv.fullScroll(ScrollView.FOCUS_DOWN); }
+            val sv = findViewById(R.id.scrollView) as ScrollView
+            sv.post { sv.fullScroll(ScrollView.FOCUS_DOWN); }
+
+        }.subscribeOn(AndroidSchedulers.mainThread())
+                .subscribe();
     }
 
     val initScript = """
