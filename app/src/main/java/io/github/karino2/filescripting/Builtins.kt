@@ -1,8 +1,7 @@
 package io.github.karino2.filescripting
 
-import bsh.Interpreter
+import org.snapscript.core.ExpressionEvaluator
 import java.io.File
-import bsh.StringUtil
 import java.io.BufferedInputStream
 import java.io.FileInputStream
 import java.io.IOException
@@ -13,13 +12,14 @@ import kotlin.coroutines.experimental.buildSequence
  * Created by _ on 2018/02/23.
  * Facade for script command
  */
-class Builtins(val intp : Interpreter, val ctx: MainActivity) {
+class Builtins(val intp : ExpressionEvaluator, val ctx: MainActivity) {
     val String.isPattern
     get()= this.contains("*")
 
-    val Interpreter.CWD : File
-    get() = File(this.get("bsh.cwd") as String)
+    val ExpressionEvaluator.CWD : File
+    get() = File("/storage" /* this.get("bsh.cwd") as String */)
 
+    fun ExpressionEvaluator.pathToFile(path: String) = File(path)
 
     fun isWildcard(cand: String) = cand.isPattern
 
@@ -172,7 +172,10 @@ class Builtins(val intp : Interpreter, val ctx: MainActivity) {
         }
 
         var files = target.list()
+        files.sort()
+        /*
         files = StringUtil.bubbleSort(files)
+        */
 
         val seq = buildSequence {
             for(file in files) {

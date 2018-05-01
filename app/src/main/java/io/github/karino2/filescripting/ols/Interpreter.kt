@@ -6,11 +6,12 @@ import com.github.h0tk3y.betterParse.grammar.Grammar
 import com.github.h0tk3y.betterParse.parser.Parser
 
 import io.github.karino2.filescripting.MainActivity
+import org.snapscript.core.ExpressionEvaluator
 
 /**
  * Created by _ on 2018/02/24.
  */
-class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<Any?>() {
+class Interpreter(val bintp: ExpressionEvaluator, val ctx: MainActivity) :Grammar<Any?>() {
     val id by token("\\w+")
     val dot by token ("\\.")
     val dol by token ("\\$")
@@ -21,7 +22,7 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
     val lVar = dol * id map { (_, nametk) -> nametk.text }
 
 
-    val argVar = dol * id map { (_, nametk) -> bintp.get(nametk.text) }
+    val argVar = dol * id map { (_, nametk) -> "dummy" /* bintp.get(nametk.text) */ }
 
     val argLiteralExp  = oneOrMore((id or aster or dot) use {text}) use { joinToString("") }
     val argExp = argLiteralExp or argVar
@@ -31,7 +32,7 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
 
     val command = commandWithArg or singularCommand
 
-    val assign = (lVar *  -zeroOrMore(ws)*equal* -zeroOrMore(ws) * command).map {(lname, _, rval) ->   bintp.set(lname,  rval) }
+    val assign = (lVar *  -zeroOrMore(ws)*equal* -zeroOrMore(ws) * command).map {(lname, _, rval) ->  "dummy" /* bintp.set(lname,  rval) */ }
     val statements = command or assign or argVar
 
     override val rootParser: Parser<Any?> = statements
@@ -44,6 +45,7 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
     fun funCall(name: String, args: List<Any?>) : Any? {
         // it?.javaClass ?: Class.forName("java.lang.Object")
 
+        /*
         val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaOrDefClass } .toTypedArray(), false)
         // val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaClass as java.lang.Class<out Any?> } .toTypedArray(), false)
         // val bshMethod = bshMethodOrg ?: bintp.nameSpace.getMethod(name, args.map { Class.forName("java.lang.Object") as java.lang.Class<out Any?> } .toTypedArray(), false)
@@ -63,6 +65,8 @@ class Interpreter(val bintp: bsh.Interpreter, val ctx: MainActivity) :Grammar<An
             throw Exception("Unmatched argnum of function: ${name}. defined ${bshMethod.parameterTypes.size}, supplied ${args.size}")
         }
         return bshMethod.invoke(args.toTypedArray(), bintp)
+        */
+        return ""
     }
 
 }

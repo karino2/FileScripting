@@ -12,8 +12,6 @@ import android.widget.EditText
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import bsh.EvalError
-import bsh.ParseException
 import com.github.h0tk3y.betterParse.grammar.parseToEnd
 import io.github.karino2.filescripting.ols.Interpreter
 import io.reactivex.Completable
@@ -22,6 +20,9 @@ import io.reactivex.Scheduler
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import org.snapscript.common.store.ClassPathStore
+import org.snapscript.compile.StoreContext
+import org.snapscript.core.scope.MapModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -36,8 +37,10 @@ class MainActivity : AppCompatActivity() {
         etCmdLine.setText("")
         try {
             val res = olsInterpreter.parseToEnd(script)
+            /*
             if(res == bsh.Primitive.VOID)
                 return
+            */
             res?.let {
                 printObject(res)
                 println("")
@@ -49,7 +52,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     val olsInterpreter by lazy {
-        val intp = Interpreter(bshInterpreter, this)
+        val intp = Interpreter(evaluator, this)
         intp
     }
 
@@ -70,6 +73,18 @@ class MainActivity : AppCompatActivity() {
         }
          super.onStop()
     }
+
+    val model by lazy {
+        MapModel(emptyMap<String, Any>())
+    }
+
+    val evaluator by lazy {
+        val store = ClassPathStore()
+        val context = StoreContext(store)
+        context.evaluator
+    }
+
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -135,8 +150,6 @@ class MainActivity : AppCompatActivity() {
         })
 
 
-        // instantiation first for easier development
-        val bintp = bshInterpreter
 
         val commandPublisher = PublishSubject.create<Int>()
 
@@ -206,15 +219,6 @@ class MainActivity : AppCompatActivity() {
 
     fun perrorln(msg: String) { println(msg) }
 
-
-    val bshInterpreter by lazy {
-        val int = bsh.Interpreter()
-        val builtin = Builtins(int, this)
-        int.set("ctx", this)
-        int.set("builtins", builtin)
-        int.eval(initScript)
-        int
-    }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
          menuInflater.inflate(R.menu.main, menu)
@@ -294,6 +298,7 @@ class MainActivity : AppCompatActivity() {
     var running = false;
     var startTick = 0L
 
+
     private fun runScript(script: String) {
         if(running) {
             showMessage("already running...")
@@ -304,37 +309,45 @@ class MainActivity : AppCompatActivity() {
         startTick = System.currentTimeMillis()
         showMessage("run")
         Flowable.fromCallable {
-           bshInterpreter.eval(script)
+            evaluator.evaluate<Any>(model, script)
         }.subscribeOn(Schedulers.computation())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
-                    {
-                        if(System.currentTimeMillis() - startTick> 5000) {
-                            showMessage("eval done.")
-                        }
-
-                        running = false
-                        it?.let {
-                            printObject(it)
-                            println("")
-                        }
-                    },
-                    {
-                        running = false
-                        when(it)
                         {
-                            is ParseException ->
-                            {
-                                println(it.message!!)
+                            if(System.currentTimeMillis() - startTick> 5000) {
+                                showMessage("eval done.")
                             }
-                            is EvalError -> {
-                                println("Error: ${it.errorLineNumber}: ${it.errorText}\n ${it.message}")
-                            }
-                        }
 
-                    }
+                            running = false
+                            it?.let {
+                                printObject(it)
+                                println("")
+                            }
+                        },
+                        {
+                            running = false
+                            when(it)
+                            {
+                                is Exception ->
+                                {
+                                    println(it.message!!)
+                                }
+                                /*
+                                is ParseException ->
+                                {
+                                    println(it.message!!)
+                                }
+                                is EvalError -> {
+                                    println("Error: ${it.errorLineNumber}: ${it.errorText}\n ${it.message}")
+                                }
+                                */
+                            }
+
+                        }
                 )
     }
+
+
 
     private fun showMessage(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
 
@@ -345,7 +358,8 @@ class MainActivity : AppCompatActivity() {
                 print("null")
             }
             is Iterable<*> -> {
-                println(bsh.StringUtil.normalizeClassName(obj.javaClass) + ":")
+                // println(bsh.StringUtil.normalizeClassName(obj.javaClass) + ":")
+                println(obj.javaClass.toString() + ":")
                 for(one in obj) {
                     printObject(one)
                     println("")
