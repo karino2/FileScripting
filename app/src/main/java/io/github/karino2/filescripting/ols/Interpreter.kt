@@ -46,46 +46,11 @@ class Interpreter(val bintp: SnapInterpreter, val ctx: MainActivity) :Grammar<An
     fun funCall(name: String, args: List<Any?>) : Any? {
 
         val resolved = bintp.resolveFunction(name, args.toTypedArray())
-        // val resolved = bintp.resolveFunction(name, args.map { it.javaOrDefClass } .toTypedArray())
         resolved?.let {
             return it.call().getValue();
-            // return it.invocation.invoke(bintp.defaultModule.scope, null, args.toTypedArray())
         }
-
-        /*
-        val objarrClass = Class.forName("[Ljava.lang.Object;")
-        val argTypes = arrayOf(objarrClass)
-        val resolved2 = bintp.resolveFunction(name, args.map { it.javaOrDefClass } .toTypedArray())
-        resolved2?.let {
-            return it.invocation.invoke(bintp.defaultModule.scope, null, arrayOf<Any>(args.toTypedArray()))
-        }
-        */
 
         throw Exception("Undefined function: ${name}")
-
-
-        // it?.javaClass ?: Class.forName("java.lang.Object")
-        /*
-        val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaOrDefClass } .toTypedArray(), false)
-        // val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaClass as java.lang.Class<out Any?> } .toTypedArray(), false)
-        // val bshMethod = bshMethodOrg ?: bintp.nameSpace.getMethod(name, args.map { Class.forName("java.lang.Object") as java.lang.Class<out Any?> } .toTypedArray(), false)
-        if(bshMethod == null) {
-            // val bshMethod3 = bintp.nameSpace.getMethod(name, arrayOf<java.lang.Class<out Any?>>(Class.forName("java.lang.Object")), false)
-
-
-            val objarrClass = Class.forName("[Ljava.lang.Object;")
-            val argTypes = arrayOf(objarrClass)
-            val bshArrArgMethod = bintp.nameSpace.getMethod(name, argTypes, false)
-            if(bshArrArgMethod == null)
-                throw Exception("Undefined function: ${name}")
-            return bshArrArgMethod.invoke(arrayOf<Any>(args.toTypedArray()), bintp)
-        }
-
-        if(bshMethod.parameterTypes.size != args.size) {
-            throw Exception("Unmatched argnum of function: ${name}. defined ${bshMethod.parameterTypes.size}, supplied ${args.size}")
-        }
-        return bshMethod.invoke(args.toTypedArray(), bintp)
-        */
     }
 
 }
