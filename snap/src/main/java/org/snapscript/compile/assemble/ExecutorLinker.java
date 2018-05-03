@@ -60,7 +60,13 @@ public class ExecutorLinker implements PackageLinker {
       }
       return linker.link(path, source, grammar);
    }
-   
+
+   @Override
+   public void purge(Path path) {
+      registry.remove(path);
+      linker.purge(path);
+   }
+
    private class Executable implements Callable<Package> {      
       
       private final String grammar;

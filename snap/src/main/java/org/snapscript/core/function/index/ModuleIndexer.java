@@ -26,6 +26,11 @@ public class ModuleIndexer {
       this.converter = new FunctionPointerConverter(stack);
    }
 
+   public void purgeModuleIndex(Module module) {
+      int index = module.getOrder();
+      indexes.remove(index);
+   }
+
    public FunctionPointer index(Module module, String name, Type... types) throws Exception { 
       int index = module.getOrder();
       FunctionIndex match = indexes.get(index);

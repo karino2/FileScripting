@@ -13,6 +13,7 @@ import org.snapscript.core.Statement;
 import org.snapscript.core.constraint.Constraint;
 import org.snapscript.core.function.Function;
 import org.snapscript.core.function.FunctionBody;
+import org.snapscript.core.function.Parameter;
 import org.snapscript.core.function.Signature;
 import org.snapscript.core.module.Module;
 import org.snapscript.core.scope.Scope;
@@ -45,7 +46,18 @@ public class ScriptFunction extends Statement {
       this.compiler = new FunctionScopeCompiler();
       this.execution = new NoExecution(NORMAL);
       this.parameters = parameters;
-   }  
+   }
+
+   boolean compare(List<Parameter> param1, List<Parameter> param2) {
+      if(param1.size() != param2.size())
+         return false;
+
+      for(int j = 0; j < param1.size(); j++) {
+         if(!param1.get(j).getConstraint().equals(param2.get(j).getConstraint()))
+            return false;
+      }
+      return true;
+   }
    
    @Override
    public boolean define(Scope scope) throws Exception {
@@ -56,7 +68,23 @@ public class ScriptFunction extends Statement {
       FunctionBody body = builder.create(signature, module, constraint, name);
       Function function = body.create(scope);
       Constraint constraint = function.getConstraint();
-      
+
+      int removeIdx = -1;
+      for(int i = 0; i < functions.size(); i++) {
+         Function f = functions.get(i);
+         //  may be should use score. but temp work around. Only replace exact one
+         if(f.getName().equals(function.getName())) {
+            List<Parameter> param1 = function.getSignature().getParameters();
+            List<Parameter> param2 = f.getSignature().getParameters();
+            if(compare(param1, param2)) {
+               removeIdx = i;
+               break;
+            }
+         }
+      }
+      if(removeIdx != -1)
+         functions.remove(removeIdx);
+
       functions.add(function);
       body.define(scope); // count stack
       constraint.getType(scope);

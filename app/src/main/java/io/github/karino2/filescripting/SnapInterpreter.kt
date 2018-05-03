@@ -10,6 +10,8 @@ import org.snapscript.core.constraint.Constraint.NONE
 import org.snapscript.core.convert.FunctionComparator
 import org.snapscript.core.function.*
 import org.snapscript.core.function.resolve.FunctionCall
+import org.snapscript.core.module.FilePathConverter
+import org.snapscript.core.module.Path
 import org.snapscript.core.scope.MapModel
 import org.snapscript.core.type.Type
 
@@ -45,10 +47,15 @@ class SnapInterpreter() {
             // try first as expression
             return evaluator.evaluate<Any?>(model, script)
         }catch(e: Exception) {
-            // if not, compile as statements.
+            val converter = FilePathConverter()
+            context.linker.purge(converter.createPath(DEFAULT_PACKAGE));
+            context.resolver.purgeModuleIndex(defaultModule)
+
             val compiler = StringCompiler(context)
             val exec = compiler.compile(script)
             exec.execute(model)
+
+
             return null
         }
 

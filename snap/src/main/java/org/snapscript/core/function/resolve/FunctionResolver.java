@@ -79,6 +79,11 @@ public class FunctionResolver {
       return null;
    }
 
+   public void purgeModuleIndex(Module module) {
+      modules.purgeModuleIndex(module);
+   }
+
+
    public FunctionCall resolveStatic(Scope scope, Type type, String name, Type... list) throws Exception {
       FunctionPointer pointer = statics.index(type, name, list);
       

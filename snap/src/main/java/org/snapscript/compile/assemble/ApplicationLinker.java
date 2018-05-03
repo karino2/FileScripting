@@ -35,5 +35,11 @@ public class ApplicationLinker implements PackageLinker {
          cache.cache(path, linked);
       }
       return linked; 
-   } 
+   }
+
+   @Override
+   public void purge(Path path) {
+      cache.cache(path, null);
+   }
+
 }
