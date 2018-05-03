@@ -12,14 +12,14 @@ import kotlin.coroutines.experimental.buildSequence
  * Created by _ on 2018/02/23.
  * Facade for script command
  */
-class Builtins(val intp : ExpressionEvaluator, val ctx: MainActivity) {
+class Builtins(val intp : SnapInterpreter, val ctx: MainActivity) {
     val String.isPattern
     get()= this.contains("*")
 
-    val ExpressionEvaluator.CWD : File
-    get() = File("/storage" /* this.get("bsh.cwd") as String */)
+    val SnapInterpreter.CWD : File
+    get() = File(this.getVar("GLOBAL_cwd") as String)
 
-    fun ExpressionEvaluator.pathToFile(path: String) = File(path)
+    fun SnapInterpreter.pathToFile(path: String) = File(path)
 
     fun isWildcard(cand: String) = cand.isPattern
 

@@ -6,12 +6,13 @@ import com.github.h0tk3y.betterParse.grammar.Grammar
 import com.github.h0tk3y.betterParse.parser.Parser
 
 import io.github.karino2.filescripting.MainActivity
+import io.github.karino2.filescripting.SnapInterpreter
 import org.snapscript.core.ExpressionEvaluator
 
 /**
  * Created by _ on 2018/02/24.
  */
-class Interpreter(val bintp: ExpressionEvaluator, val ctx: MainActivity) :Grammar<Any?>() {
+class Interpreter(val bintp: SnapInterpreter, val ctx: MainActivity) :Grammar<Any?>() {
     val id by token("\\w+")
     val dot by token ("\\.")
     val dol by token ("\\$")
@@ -22,7 +23,7 @@ class Interpreter(val bintp: ExpressionEvaluator, val ctx: MainActivity) :Gramma
     val lVar = dol * id map { (_, nametk) -> nametk.text }
 
 
-    val argVar = dol * id map { (_, nametk) -> "dummy" /* bintp.get(nametk.text) */ }
+    val argVar = dol * id map { (_, nametk) -> bintp.getVariable(nametk.text) }
 
     val argLiteralExp  = oneOrMore((id or aster or dot) use {text}) use { joinToString("") }
     val argExp = argLiteralExp or argVar
@@ -32,7 +33,7 @@ class Interpreter(val bintp: ExpressionEvaluator, val ctx: MainActivity) :Gramma
 
     val command = commandWithArg or singularCommand
 
-    val assign = (lVar *  -zeroOrMore(ws)*equal* -zeroOrMore(ws) * command).map {(lname, _, rval) ->  "dummy" /* bintp.set(lname,  rval) */ }
+    val assign = (lVar *  -zeroOrMore(ws)*equal* -zeroOrMore(ws) * command).map {(lname, _, rval) ->  bintp.putVariable(lname,  rval) }
     val statements = command or assign or argVar
 
     override val rootParser: Parser<Any?> = statements
@@ -43,8 +44,27 @@ class Interpreter(val bintp: ExpressionEvaluator, val ctx: MainActivity) :Gramma
     }
 
     fun funCall(name: String, args: List<Any?>) : Any? {
-        // it?.javaClass ?: Class.forName("java.lang.Object")
 
+        val resolved = bintp.resolveFunction(name, args.toTypedArray())
+        // val resolved = bintp.resolveFunction(name, args.map { it.javaOrDefClass } .toTypedArray())
+        resolved?.let {
+            return it.call().getValue();
+            // return it.invocation.invoke(bintp.defaultModule.scope, null, args.toTypedArray())
+        }
+
+        /*
+        val objarrClass = Class.forName("[Ljava.lang.Object;")
+        val argTypes = arrayOf(objarrClass)
+        val resolved2 = bintp.resolveFunction(name, args.map { it.javaOrDefClass } .toTypedArray())
+        resolved2?.let {
+            return it.invocation.invoke(bintp.defaultModule.scope, null, arrayOf<Any>(args.toTypedArray()))
+        }
+        */
+
+        throw Exception("Undefined function: ${name}")
+
+
+        // it?.javaClass ?: Class.forName("java.lang.Object")
         /*
         val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaOrDefClass } .toTypedArray(), false)
         // val bshMethod = bintp.nameSpace.getMethod(name, args.map { it.javaClass as java.lang.Class<out Any?> } .toTypedArray(), false)
@@ -66,7 +86,6 @@ class Interpreter(val bintp: ExpressionEvaluator, val ctx: MainActivity) :Gramma
         }
         return bshMethod.invoke(args.toTypedArray(), bintp)
         */
-        return ""
     }
 
 }

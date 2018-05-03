@@ -22,6 +22,7 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import org.snapscript.common.store.ClassPathStore
 import org.snapscript.compile.StoreContext
+import org.snapscript.core.InternalStateException
 import org.snapscript.core.scope.MapModel
 import java.io.File
 import java.text.SimpleDateFormat
@@ -45,6 +46,12 @@ class MainActivity : AppCompatActivity() {
                 printObject(res)
                 println("")
             }
+        }catch(e: InternalStateException) {
+            e.cause?.let {
+                println("Exception: ${e.message}\n${it.message}")
+                return
+            }
+            println("Exception: ${e.message}")
         }catch(e : Exception) {
             println("Exception: ${e.message}")
         }
@@ -52,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     val olsInterpreter by lazy {
-        val intp = Interpreter(evaluator, this)
+        val intp = Interpreter(snapInterpreter,this)
         intp
     }
 
@@ -74,16 +81,13 @@ class MainActivity : AppCompatActivity() {
          super.onStop()
     }
 
-    val model by lazy {
-        MapModel(emptyMap<String, Any>())
-    }
+    val snapInterpreter by lazy {
+        val intp = SnapInterpreter()
+        intp.putVar("builtins", Builtins(intp, this))
+        // intp.eval<Any?>(initScript)
 
-    val evaluator by lazy {
-        val store = ClassPathStore()
-        val context = StoreContext(store)
-        context.evaluator
+        intp
     }
-
 
 
 
@@ -309,7 +313,7 @@ class MainActivity : AppCompatActivity() {
         startTick = System.currentTimeMillis()
         showMessage("run")
         Flowable.fromCallable {
-            evaluator.evaluate<Any>(model, script)
+            snapInterpreter.eval(script)
         }.subscribeOn(Schedulers.computation())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
@@ -326,8 +330,14 @@ class MainActivity : AppCompatActivity() {
                         },
                         {
                             running = false
-                            when(it)
-                            {
+                            when(it) {
+                                is InternalStateException ->
+                                {
+                                    println(it.message!!)
+                                    it.cause?.let {
+                                        println(it.message)
+                                    }
+                                }
                                 is Exception ->
                                 {
                                     println(it.message!!)
@@ -399,6 +409,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     val initScript = """
+function ls() {
+    return builtins.ls(".");
+}
+"""
+
+    val initScriptOld = """
 bsh.help.ls = "usage: ls(dir)";
 ls(dir) {
     return builtins.ls(dir);
