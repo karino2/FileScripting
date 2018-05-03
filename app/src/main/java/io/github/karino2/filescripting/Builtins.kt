@@ -16,10 +16,14 @@ class Builtins(val intp : SnapInterpreter, val ctx: MainActivity) {
     val String.isPattern
     get()= this.contains("*")
 
-    val SnapInterpreter.CWD : File
-    get() = File(this.getVar("GLOBAL_cwd") as String)
+    val CWD: File
+    get() = File(intp.getVar("cwd") as String)
 
-    fun SnapInterpreter.pathToFile(path: String) = File(path)
+    fun pathToFile(path:String) : File{
+        if(path.startsWith("/"))
+            return File(path)
+        return File(CWD, path)
+    }
 
     fun isWildcard(cand: String) = cand.isPattern
 
@@ -27,9 +31,9 @@ class Builtins(val intp : SnapInterpreter, val ctx: MainActivity) {
         when(dir) {
             is String -> {
                 if(dir.isPattern) {
-                    return expands(intp.CWD, dir).asIterable()
+                    return expands(CWD, dir).asIterable()
                 } else {
-                    return lsFile(intp.pathToFile(dir))
+                    return lsFile(pathToFile(dir))
                 }
             }
             is File -> {
@@ -78,14 +82,14 @@ class Builtins(val intp : SnapInterpreter, val ctx: MainActivity) {
     }
 
     fun Iterable<Any>.flatMapFiles() : List<File> {
-        val cwd = intp.CWD
+        val cwd = CWD
         return this.flatMap {
             when (it) {
                 is String -> {
                     if (it.isPattern) {
                         expands(cwd, it).asIterable()
                     } else {
-                        arrayListOf(intp.pathToFile(it))
+                        arrayListOf(pathToFile(it))
                     }
                 }
                 is File -> {
@@ -97,12 +101,15 @@ class Builtins(val intp : SnapInterpreter, val ctx: MainActivity) {
         }
     }
 
+    fun printObject(obj: Any?) = ctx.printObject(obj)
+    fun println(msg: String) = ctx.println(msg)
+
     fun splitSourceDist(files: Array<Any>) : Pair<List<File>, File> {
         val srces = files.slice(0 until files.size-1).flatMapFiles()
 
         val last = files.last()
         val dest = when(last) {
-            is String -> intp.pathToFile(last)
+            is String -> pathToFile(last)
             is File -> last
             else -> throw IllegalArgumentException("unknown dest")
         }

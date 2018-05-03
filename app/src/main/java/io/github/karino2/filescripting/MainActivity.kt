@@ -84,8 +84,7 @@ class MainActivity : AppCompatActivity() {
     val snapInterpreter by lazy {
         val intp = SnapInterpreter()
         intp.putVar("builtins", Builtins(intp, this))
-        // intp.eval<Any?>(initScript)
-
+        intp.eval(initScript)
         intp
     }
 
@@ -409,131 +408,74 @@ class MainActivity : AppCompatActivity() {
     }
 
     val initScript = """
-function ls() {
-    return builtins.ls(".");
-}
-"""
+GLOBALS.put("cwd", "/");
 
-    val initScriptOld = """
-bsh.help.ls = "usage: ls(dir)";
-ls(dir) {
-    return builtins.ls(dir);
-}
-ls() {
-    return builtins.ls(".");
+function ls(files...) {
+    if(files.length == 0) {
+        return builtins.ls(".");
+    } else {
+        return builtins.ls(files[0]);
+    }
 }
 
-
-bsh.help.print = "usage: print( value )";
-
-void print( arg )
+function print( arg: Object )
 {
-    ctx.printObject(arg);
-    ctx.println("");
+    builtins.printObject(arg);
+    builtins.println("");
 }
 
-bsh.help.javap= "usage: javap( value )";
+function pathToFile( filename: String ) {
+	return builtins.pathToFile( filename );
+}
 
-import bsh.ClassIdentifier;
-import java.lang.reflect.Modifier;
-
-javap( Object o )
+function mkdir(pathname: String)
 {
-	Class clas;
-	if ( o instanceof ClassIdentifier )
-		clas = this.caller.namespace.identifierToClass(o);
-	else if ( o instanceof String )
-	{
-		if ( o.length() < 1 ) {
-			error("javap: Empty class name.");
-			return;
-		}
-		clas = this.caller.namespace.getClass((String)o);
-	} else if ( o instanceof Class )
-		clas = o;
-	else
-		clas = o.getClass();
+    var file = pathToFile( pathname );
 
-	print( "Class "+clas+" extends " +clas.getSuperclass() );
-
-	this.dmethods=clas.getDeclaredMethods();
-	//print("------------- Methods ----------------");
-	for(int i=0; i<dmethods.length; i++) {
-		this.m = dmethods[i];
-		if ( Modifier.isPublic( m.getModifiers() ) )
-			print( m );
-	}
-
-	//print("------------- Fields ----------------");
-	this.fields=clas.getDeclaredFields();
-	for(int i=0; i<fields.length; i++) {
-		this.f = fields[i];
-		if ( Modifier.isPublic( f.getModifiers() ) )
-			print( f );
-	}
-}
-
-bsh.help.pathToFile = "usage: File pathToFile( String )";
-
-File pathToFile( String filename ) {
-	return this.interpreter.pathToFile( filename );
-}
-
-bsh.help.mkdir = "usage: mkdir(path)";
-
-mkdir(pathname)
-{
-    this.file = pathToFile( pathname );
-
-	if ( this.file.exists() ) {
+	if ( file.exists() ) {
         print( "Already exist: "+pathname);
-        return this.file;
+        return file;
     }
-    if(!this.file.mkdir()) {
+    if(!file.mkdir()) {
         print("Fail to create: " + pathname);
-        return this.file;
+        return file;
     }
-    return this.file;
+    return file;
 
 }
 
-
-bsh.help.pwd = "usage: pwd()";
-
-pwd()
+function pwd()
 {
-    return bsh.cwd;
+    return GLOBALS.get("cwd");
 }
 
-bsh.help.cd = "usage: cd( path )";
-
-void cd( String pathname )
+function cd( pathname: String )
 {
+    var file:File = null;
     if("..".equals(pathname)) {
-      this.cur = new File(bsh.cwd);
-      this.file = this.cur.getParentFile();
-      if(this.file == null) {
+      var cur = new File(GLOBALS.get("cwd"));
+      file = cur.getParentFile();
+      if(file == null) {
         return;
       }
     } else if(builtins.isWildcard(pathname)) {
-        this.files = builtins.expands(new File(bsh.cwd), pathname);
-        if(this.files.length == 0) {
+        var files = builtins.expands(new File(GLOBALS.get("cwd")), pathname);
+        if(files.length == 0) {
             print( "No such directory: "+pathname);
         }
-        this.file = this.files[0];
+        file = files[0];
     } else {
-        this.file = pathToFile( pathname );
+        file = pathToFile( pathname );
     }
 
-	if ( file.exists() && file.isDirectory() )
-		bsh.cwd = file.getCanonicalPath();
-	else
+	if ( file.exists() && file.isDirectory()){
+		GLOBALS.put("cwd", file.getCanonicalPath());
+    } else {
         print( "No such directory: "+pathname);
+    }
 }
 
-bsh.help.cp = "usage: cp( fileArray )\nlast element is destination.";
-
-void cp( Object[] files )
+function cp(files...)
 {
     if(files.length < 2) {
         print("cp src [src2, src3, ...] dest");
@@ -542,9 +484,7 @@ void cp( Object[] files )
     builtins.copyCommand(files);
 }
 
-bsh.help.mv = "usage: mv( fileArray )\nlast element is destination.";
-
-void mv( Object[] files )
+function mv(  files... )
 {
     if(files.length < 2) {
         print("mv src [src2, src3, ...] dest");
@@ -553,13 +493,10 @@ void mv( Object[] files )
     builtins.moveCommand(files);
 }
 
-bsh.help.rm = "usage: rm( fileArray )";
-
-void rm( Object[] files )
+function rm( files... )
 {
     builtins.rmCommand(files);
 }
 
-        """
-
+"""
 }

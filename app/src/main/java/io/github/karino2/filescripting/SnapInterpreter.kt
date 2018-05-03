@@ -19,7 +19,9 @@ import org.snapscript.core.type.Type
  */
 class SnapInterpreter() {
     val variableMap by lazy {
-        mutableMapOf<String, Any?>()
+        val map = mutableMapOf<String, Any?>()
+        map.put("GLOBALS", map)
+        map
     }
 
     fun getVar(name:String) = variableMap.get(name)
