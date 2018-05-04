@@ -498,5 +498,8 @@ function rm( files... )
     builtins.rmCommand(files);
 }
 
+function BA(blist: Byte[]) {
+    return builtins.listToByteArray(blist);
+}
 """
 }

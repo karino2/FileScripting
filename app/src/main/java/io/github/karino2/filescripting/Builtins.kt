@@ -192,4 +192,12 @@ class Builtins(val intp : SnapInterpreter, val ctx: MainActivity) {
         }
         return seq.asIterable()
     }
+
+    fun listToByteArray(blist: List<Any?>) : ByteArray {
+        val res = ByteArray(blist.size)
+        for(i in 0 until blist.size) {
+            res[i] = blist[i] as Byte
+        }
+        return res
+    }
 }
