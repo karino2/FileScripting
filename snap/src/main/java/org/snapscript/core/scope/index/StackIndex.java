@@ -35,10 +35,11 @@ public class StackIndex implements Index {
    @Override
    public int index(String name) {
       Integer index = locals.fetch(name);
-      
+
       if(index != null) {
          throw new IllegalStateException("Duplicate variable '" + name + "' in scope");
       }
+
       int size = locals.size();
       
       locals.cache(name, size);
@@ -65,5 +66,14 @@ public class StackIndex implements Index {
    @Override
    public String toString() {
       return String.valueOf(locals);
+   }
+
+   public int newOrReplaceIndex(String name) {
+      Integer index = locals.fetch(name);
+
+      if(index != null) {
+         return index;
+      }
+      return index(name);
    }
 }

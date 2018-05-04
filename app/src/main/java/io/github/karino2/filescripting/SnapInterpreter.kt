@@ -1,19 +1,14 @@
 package io.github.karino2.filescripting
 
+import org.snapscript.tree.Instruction.SCRIPT
 import org.snapscript.common.store.ClassPathStore
 import org.snapscript.compile.StoreContext
-import org.snapscript.compile.StringCompiler
+import org.snapscript.compile.assemble.InterpreterApplication
 import org.snapscript.core.Reserved.DEFAULT_PACKAGE
 import org.snapscript.core.ScopeMerger
-import org.snapscript.core.constraint.Constraint
-import org.snapscript.core.constraint.Constraint.NONE
-import org.snapscript.core.convert.FunctionComparator
-import org.snapscript.core.function.*
 import org.snapscript.core.function.resolve.FunctionCall
 import org.snapscript.core.module.FilePathConverter
-import org.snapscript.core.module.Path
 import org.snapscript.core.scope.MapModel
-import org.snapscript.core.type.Type
 
 /*
  */
@@ -31,10 +26,6 @@ class SnapInterpreter() {
         MapModel(variableMap)
     }
 
-    val evaluator by lazy {
-        context.evaluator
-    }
-
     val context by lazy {
         val store = ClassPathStore()
          StoreContext(store)
@@ -43,20 +34,28 @@ class SnapInterpreter() {
     fun getVariable(name: String) =variableMap.get(name)
     fun putVariable(name:String, someValue: Any?) = variableMap.put(name, someValue)
 
+    val interpreterApplication by lazy {
+        InterpreterApplication(context, path, DEFAULT_PACKAGE, model)
+    }
+
+    val path by lazy {
+        val converter = FilePathConverter()
+        converter.createPath(DEFAULT_PACKAGE)
+    }
 
     fun eval(script: String): Any?{
         try {
             // try first as expression
-            return evaluator.evaluate<Any?>(model, script)
+            return interpreterApplication.evaluate(script)
         }catch(e: Exception) {
-            val converter = FilePathConverter()
-            context.linker.purge(converter.createPath(DEFAULT_PACKAGE));
+            context.clearCurrentError();
             context.resolver.purgeModuleIndex(defaultModule)
 
-            val compiler = StringCompiler(context)
-            val exec = compiler.compile(script)
-            exec.execute(model)
+            val linker = context.linker
+           linker.purge(path);
+            val library = linker.link(path, script, SCRIPT.getName())
 
+            interpreterApplication.evaluateStatements(library)
 
             return null
         }

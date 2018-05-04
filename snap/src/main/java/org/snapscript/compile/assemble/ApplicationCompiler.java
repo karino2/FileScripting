@@ -13,13 +13,19 @@ import org.snapscript.core.scope.Scope;
 public class ApplicationCompiler {
    
    private final AtomicReference<Execution> cache;
-   private final Package library;
+   private Package library;
    private final Context context;
    
    public ApplicationCompiler(Context context, Package library){
       this.cache = new AtomicReference<Execution>();
       this.library = library;
       this.context = context;
+   }
+
+
+   public void setLibrary(Package library) {
+      this.library = library;
+      cache.set(null);
    }
 
    public Execution compile(Scope scope) throws Exception{ 

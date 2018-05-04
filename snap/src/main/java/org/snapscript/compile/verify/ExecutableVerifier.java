@@ -18,6 +18,8 @@ public class ExecutableVerifier extends TraceErrorCollector implements Verifier 
       VerifyError error = new VerifyError(cause, trace);
       errors.add(error);
    }
+
+   public void clear(){ errors.clear(); }
    
    public void verify(){
       if(!errors.isEmpty()) {

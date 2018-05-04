@@ -49,6 +49,10 @@ public class StoreContext implements Context {
    public StoreContext(Store store){
       this(store, null);
    }
+
+   public void clearCurrentError() {
+      this.verifier.clear();
+   }
    
    public StoreContext(Store store, Executor executor){
       this.stack = new ThreadStack();
