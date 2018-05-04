@@ -6,6 +6,7 @@ import org.snapscript.core.ScopeMerger;
 import org.snapscript.core.error.ErrorHandler;
 import org.snapscript.core.link.Package;
 import org.snapscript.core.module.Path;
+import org.snapscript.core.result.Result;
 import org.snapscript.core.scope.EmptyModel;
 import org.snapscript.core.scope.Model;
 import org.snapscript.core.scope.Scope;
@@ -21,7 +22,6 @@ public class InterpreterApplication {
     private final Path path;
 
     Scope scope;
-    ErrorHandler handler;
 
     public InterpreterApplication(Context context, Path path, String name, Model model){
         this.merger = new ScopeMerger(context);
@@ -31,22 +31,17 @@ public class InterpreterApplication {
         this.name = name;
 
         scope = merger.merge(model, name, path);
-        handler = context.getHandler();
     }
 
     public Object evaluate(String source) throws Exception {
         return context.getEvaluator().evaluate(scope, source);
     }
 
-    public void evaluateStatements(Package library) throws Exception{
+    public Result evaluateStatements(Package library) throws Exception{
         setupCompiler(library);
         Execution execution = compiler.compile(scope); // create all types
 
-        try {
-            execution.execute(scope);
-        } catch(Throwable cause) {
-            handler.handleExternalError(THROW, scope, cause);
-        }
+        return execution.execute(scope);
     }
 
     private void setupCompiler(Package library) {

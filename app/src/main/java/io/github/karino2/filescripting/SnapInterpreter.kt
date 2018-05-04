@@ -55,9 +55,9 @@ class SnapInterpreter() {
            linker.purge(path);
             val library = linker.link(path, script, SCRIPT.getName())
 
-            interpreterApplication.evaluateStatements(library)
+            val result = interpreterApplication.evaluateStatements(library)
 
-            return null
+            return result.getValue();
         }
 
     }
