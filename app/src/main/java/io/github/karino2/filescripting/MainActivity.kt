@@ -13,17 +13,13 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.github.h0tk3y.betterParse.grammar.parseToEnd
-import io.github.karino2.filescripting.ols.Interpreter
+import io.github.karino2.filescripting.ols.OlsInterpreter
 import io.reactivex.Completable
 import io.reactivex.Flowable
-import io.reactivex.Scheduler
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
-import org.snapscript.common.store.ClassPathStore
-import org.snapscript.compile.StoreContext
 import org.snapscript.core.InternalStateException
-import org.snapscript.core.scope.MapModel
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -59,7 +55,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     val olsInterpreter by lazy {
-        val intp = Interpreter(snapInterpreter,this)
+        val intp = OlsInterpreter(snapInterpreter,this)
         intp
     }
 
@@ -341,15 +337,6 @@ class MainActivity : AppCompatActivity() {
                                 {
                                     println(it.message!!)
                                 }
-                                /*
-                                is ParseException ->
-                                {
-                                    println(it.message!!)
-                                }
-                                is EvalError -> {
-                                    println("Error: ${it.errorLineNumber}: ${it.errorText}\n ${it.message}")
-                                }
-                                */
                             }
 
                         }

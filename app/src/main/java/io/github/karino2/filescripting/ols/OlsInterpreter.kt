@@ -12,7 +12,7 @@ import org.snapscript.core.ExpressionEvaluator
 /**
  * Created by _ on 2018/02/24.
  */
-class Interpreter(val bintp: SnapInterpreter, val ctx: MainActivity) :Grammar<Any?>() {
+class OlsInterpreter(val bintp: SnapInterpreter, val ctx: MainActivity) :Grammar<Any?>() {
     val id by token("\\w+")
     val dot by token ("\\.")
     val dol by token ("\\$")
